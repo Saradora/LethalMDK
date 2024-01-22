@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LethalMDK", "LethalMDK.csproj", "{B2BD1B30-FD8D-482B-AF29-C17476779C6D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B2BD1B30-FD8D-482B-AF29-C17476779C6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2BD1B30-FD8D-482B-AF29-C17476779C6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2BD1B30-FD8D-482B-AF29-C17476779C6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2BD1B30-FD8D-482B-AF29-C17476779C6D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,10 @@
+{
+	"name": "LethalMDK",
+	"author": "Saradora",
+	"version_number": "0.1.0",
+	"website_url": "",
+	"description": "Personal C# library for modding Lethal Company.",
+	"dependencies": [
+		"Saradora-UnityMDK-0.1.0"
+	]
+}
