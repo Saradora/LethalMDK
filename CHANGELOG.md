@@ -10,14 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.0.0] - 2024-01-22
 
-### Added
-- Patched last missing instantiate method ``Object.Instantiate<T>(T original)``
+### Changed
+- Updated to 1.0.0 of UnityMDK
 
 ## [0.1.0] - 2024-01-20
 
 ### Added
-- Patched ``Object.Instantiate(Object original)`` methods to modify original prefabs before cloning
-- Patched ``GameObject.AddComponent()`` to automatically add code to any new component
-- InjectToComponent Attribute to automatically add any MonoBehaviour to specified component
-- Initializer Attribute to simulate Unity's RuntimeInitializeOnLoad
-- SceneConstructor Attribute to execute code after a scene is loaded
+- Added some LC layers and tags for easy reference
+- Added ``Player.LocalPlayer`` to get the local player
+- Added a lib to create scan nodes

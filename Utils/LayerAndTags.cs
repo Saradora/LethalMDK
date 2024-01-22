@@ -4,10 +4,10 @@ namespace LethalMDK;
 
 public class LayerMasks
 {
-    public static readonly int Default = 1 << LayerMask.NameToLayer(nameof(Default));
-    public static readonly int InteractableObject = 1 << LayerMask.NameToLayer(nameof(InteractableObject));
-    public static readonly int Room = 1 << LayerMask.NameToLayer(nameof(Room));
-    public static readonly int ScanNode = 1 << LayerMask.NameToLayer(nameof(ScanNode));
+    public static readonly int Default = 1 << Layers.Default;
+    public static readonly int InteractableObject = 1 << Layers.InteractableObject;
+    public static readonly int Room = 1 << Layers.Room;
+    public static readonly int ScanNode = 1 << Layers.ScanNode;
 }
 
 public class Layers
