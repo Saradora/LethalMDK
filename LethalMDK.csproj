@@ -17,6 +17,9 @@
       <Reference Include="BepInEx">
         <HintPath>..\..\..\..\..\..\Steam\steamapps\common\Lethal Company\BepInEx\core\BepInEx.dll</HintPath>
       </Reference>
+      <Reference Include="Unity.Netcode.Runtime">
+        <HintPath>..\..\..\..\..\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
+      </Reference>
       <Reference Include="UnityEngine">
         <HintPath>..\..\..\..\..\..\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\UnityEngine.dll</HintPath>
       </Reference>
@@ -31,6 +34,7 @@
       </Reference>
 
     </ItemGroup>
+
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
         <Exec Condition="'$(Configuration)' == 'Release'" Command="&quot;$(ProjectDir)PackagePacker.exe&quot; &quot;y&quot;" />
