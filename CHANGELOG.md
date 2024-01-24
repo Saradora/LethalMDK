@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 //
 
+## [1.0.1] - 2024-01-24
+
+### Changed
+- Removed self logging and use UnityMDK's instead
+
 ## [1.0.0] - 2024-01-22
 
 ### Changed

@@ -1,6 +1,6 @@
-﻿using LethalMDK.Logging;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityMDK.Injection;
+using UnityMDK.Logging;
 
 namespace LethalMDK.World;
 

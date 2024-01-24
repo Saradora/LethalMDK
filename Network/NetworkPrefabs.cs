@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityMDK;
 using System.Security.Cryptography;
 using System.Text;
-using LethalMDK.Logging;
+using UnityMDK.Logging;
 using UnityMDK.Reflection;
 
 namespace LethalMDK.Network;
