@@ -5,6 +5,6 @@
 	"website_url": "https://github.com/Saradora/LethalMDK",
 	"description": "Personal C# library for modding Lethal Company.",
 	"dependencies": [
-		"Saradora-UnityMDK-1.0.0"
+		"Saradora-UnityMDK-1.1.0"
 	]
 }
