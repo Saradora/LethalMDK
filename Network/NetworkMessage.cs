@@ -1,144 +1,91 @@
-﻿using Unity.Collections;
+﻿using System.Reflection;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityMDK.Logging;
 
 namespace LethalMDK.Network;
 
-public static class Messaging
+public struct NetworkMessage<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
-    public static CustomMessagingManager Manager => NetworkManager.Singleton.CustomMessagingManager;
+    private readonly string _messageName;
 
-    public static bool IsServerOrHost => NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost;
-
-    private static readonly List<ulong> _listWithoutHost = new();
-
-    public static ulong ServerClientId => NetworkManager.ServerClientId;
-
-    public static IReadOnlyList<ulong> ClientIds
+    public NetworkMessage(string name)
     {
-        get
-        {
-            var ids = NetworkManager.Singleton.ConnectedClientsIds;
-            _listWithoutHost.Clear();
-            ulong serverId = NetworkManager.ServerClientId;
-            foreach (var clientId in ids)
-            {
-                if (clientId == serverId)
-                {
-                    Log.Warning($"Skipping host: {clientId}");
-                    continue;
-                }
-                _listWithoutHost.Add(clientId);
-            }
-            return _listWithoutHost;
-        }
-    }
-}
-
-public class NetworkEvent
-{
-    public void SendMessage()
-    {
-        
-    }
-}
-
-public abstract class NetworkMessage<T> : IDisposable where T : unmanaged, IEquatable<T>
-{
-    protected readonly string messageName;
-
-    protected NetworkMessage(string name)
-    {
-        messageName = name;
         if (!NetworkManager.Singleton)
             throw new NullReferenceException("Network Singleton hasn't yet been instantied, you need to construct the NetworkMessage later.");
-        NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(messageName, ReceiveMessage);
-    }
-
-    protected abstract void ReceiveMessage(ulong senderId, FastBufferReader messagePayload);
-
-    public void Dispose()
-    {
-        if (NetworkManager.Singleton && NetworkManager.Singleton.CustomMessagingManager is not null)
-            NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler(messageName);
-    }
-}
-
-public class NetworkClientMessage<T> : NetworkMessage<T> where T : unmanaged, IEquatable<T>
-{
-    public NetworkClientMessage(string name) : base(name)
-    {
-    }
-
-    public event Action<T, ulong> MessageReceived;
-
-    protected override void ReceiveMessage(ulong senderId, FastBufferReader messagePayload)
-    {
-        if (!Messaging.IsServerOrHost) return;
         
-        var receivedMessageContent = new ForceNetworkSerializeByMemcpy<T>(new T());
-        messagePayload.ReadValueSafe(out receivedMessageContent);
-        MessageReceived?.Invoke(receivedMessageContent.Value, senderId);
+        MessageReceivedFromClient = null;
+        MessageReceivedFromServer = null;
+        _messageName = Assembly.GetCallingAssembly().GetName().Name + "+" + name;
+        Messaging.Manager.RegisterNamedMessageHandler(_messageName, ReceiveMessage);
+    }
+
+    public event Action<T, ulong> MessageReceivedFromClient;
+    public event Action<T> MessageReceivedFromServer;
+
+    private void ReceiveMessage(ulong senderId, FastBufferReader messagePayload)
+    {
+        messagePayload.ReadValueSafe(out ForceNetworkSerializeByMemcpy<T> receivedMessageContent);
+        
+        if (senderId == Messaging.ServerClientId)
+            MessageReceivedFromServer?.Invoke(receivedMessageContent.Value);
+        else
+            MessageReceivedFromClient?.Invoke(receivedMessageContent.Value, senderId);
     }
 
     public void SendToServer(T value)
     {
-        if (Messaging.IsServerOrHost) return;
+        if (Messaging.IsServerOrHost)
+        {
+            Log.Warning($"Can't send message to server as the server.");
+            return;
+        }
         
         var messageContent = new ForceNetworkSerializeByMemcpy<T>(value);
-        var writer = new FastBufferWriter(FastBufferWriter.GetWriteSize<T>(), Allocator.Temp);
-        using (writer)
-        {
-            writer.WriteValueSafe(messageContent);
-            Log.Warning($"Send message: {value}");
-            NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(messageName, Messaging.ServerClientId, writer);
-        }
-    }
-}
-
-public class NetworkServerMessage<T> : NetworkMessage<T> where T : unmanaged, IEquatable<T>
-{
-    public NetworkServerMessage(string name) : base(name)
-    {
-    }
-
-    public event Action<T> MessageReceived;
-
-    protected override void ReceiveMessage(ulong senderId, FastBufferReader messagePayload)
-    {
-        if (Messaging.IsServerOrHost) return;
-        
-        var receivedMessageContent = new ForceNetworkSerializeByMemcpy<T>(new T());
-        messagePayload.ReadValueSafe(out receivedMessageContent);
-        MessageReceived?.Invoke(receivedMessageContent.Value);
+        using var writer = new FastBufferWriter(FastBufferWriter.GetWriteSize<T>(), Allocator.Temp);
+        writer.WriteValueSafe(messageContent);
+        NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(_messageName, Messaging.ServerClientId, writer);
     }
 
     public void SendToClient(T value, ulong clientId)
     {
-        if (!Messaging.IsServerOrHost) return;
-        if (clientId == Messaging.ServerClientId) return;
+        if (!Messaging.IsServerOrHost)
+        {
+            Log.Warning($"Can't send message to client as another client");
+            return;
+        }
+        if (clientId == Messaging.ServerClientId)
+        {
+            Log.Warning($"Can't send message to self");
+            return;
+        }
         
         var messageContent = new ForceNetworkSerializeByMemcpy<T>(value);
-        var writer = new FastBufferWriter(FastBufferWriter.GetWriteSize<T>(), Allocator.Temp);
-        using (writer)
-        {
-            writer.WriteValueSafe(messageContent);
-            Log.Warning($"Send message: {value}");
-            NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(messageName, clientId, writer);
-        }
+        using var writer = new FastBufferWriter(FastBufferWriter.GetWriteSize<T>(), Allocator.Temp);
+        writer.WriteValueSafe(messageContent);
+        NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(_messageName, clientId, writer);
     }
 
-    public void SendToAllClients(T value)
+    public void SendToAllClients(T value, bool sendToHost = false)
     {
-        if (!Messaging.IsServerOrHost) return;
+        if (!Messaging.IsServerOrHost)
+        {
+            Log.Warning($"Can't send message to client as another client");
+            return;
+        }
         
         var messageContent = new ForceNetworkSerializeByMemcpy<T>(value);
-        var writer = new FastBufferWriter(FastBufferWriter.GetWriteSize<T>(), Allocator.Temp);
-        using (writer)
-        {
-            writer.WriteValueSafe(messageContent);
-            Log.Warning($"Send message: {value}");
-            NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(messageName, Messaging.ClientIds, writer);
-        }
+        using var writer = new FastBufferWriter(FastBufferWriter.GetWriteSize<T>(), Allocator.Temp);
+        writer.WriteValueSafe(messageContent);
+        if (sendToHost)
+            NetworkManager.Singleton.CustomMessagingManager.SendNamedMessageToAll(_messageName, writer);
+        else
+            NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(_messageName, Messaging.ClientIds, writer);
+    }
+
+    public void Dispose()
+    {
+        if (NetworkManager.Singleton && NetworkManager.Singleton.CustomMessagingManager is not null)
+            NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler(_messageName);
     }
 }

@@ -13,54 +13,51 @@ public class Test : MonoBehaviour
     [Tooltip("The name identifier used for this custom message handler.")]
     public string MessageName = "MyCustomNamedMessage";
 
-    private NetworkClientMessage<Guid> _testMessageClient;
-    private NetworkServerMessage<Guid> _testMessageServer;
+    private NetworkEvent _testMessage;
 
     private void Awake()
     {
-        _testMessageClient = new NetworkClientMessage<Guid>(MessageName);
-        _testMessageServer = new NetworkServerMessage<Guid>(MessageName);
+        _testMessage = new NetworkEvent(MessageName);
         
-        Log.Error($"Start wesh");
+        Log.Error($"Test start");
 
-        if (NetworkManager.Singleton.IsServer)
+        if (Messaging.IsServerOrHost)
         {
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnectedCallback;
-            _testMessageClient.MessageReceived += ReceiveMessageAsServer;
+            _testMessage.MessageReceivedFromClient += ReceiveMessageAsServer;
         }
         else
         {
-            _testMessageServer.MessageReceived += ReceiveMessageAsClient;
+            _testMessage.MessageReceivedFromServer += ReceiveMessageAsClient;
         }
     }
 
     private IEnumerator Start()
     {
-        if (NetworkManager.Singleton.IsServer) yield break;
+        if (Messaging.IsServerOrHost) yield break;
         yield return new WaitForSeconds(2f);
-        _testMessageClient.SendToServer(Guid.NewGuid());
+        _testMessage.InvokeToServer();
     }
 
     private void OnDestroy()
     {
-        _testMessageClient.Dispose();
-        _testMessageServer.Dispose();
+        _testMessage.Dispose();
         // Whether server or not, unregister this.
         NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientConnectedCallback;
     }
 
     private void OnClientConnectedCallback(ulong obj)
     {
-        _testMessageServer.SendToAllClients(Guid.NewGuid());
+        _testMessage.InvokeToAllClients();
     }
 
-    private void ReceiveMessageAsClient(Guid guid)
+    private void ReceiveMessageAsClient()
     {
-        Log.Error(guid);
+        Log.Error("Received event from server!");
     }
 
-    private void ReceiveMessageAsServer(Guid guid, ulong clientId)
+    private void ReceiveMessageAsServer(ulong clientId)
     {
-        Log.Error(guid);
+        Log.Error("Received event from client: " + clientId);
     }
 }
