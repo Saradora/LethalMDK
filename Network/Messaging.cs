@@ -13,6 +13,13 @@ public static class Messaging
 
     public static ulong ServerClientId => NetworkManager.ServerClientId;
 
+    public static event Action<NetworkManager> OnSingletonChange;
+
+    internal static void TriggerSingletonChange(NetworkManager singleton)
+    {
+        OnSingletonChange?.Invoke(singleton);
+    }
+
     public static IReadOnlyList<ulong> ClientIds
     {
         get
