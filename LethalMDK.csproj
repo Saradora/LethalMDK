@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>disable</Nullable>
         <LangVersion>10</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -34,6 +35,7 @@
       </Reference>
 
     </ItemGroup>
+
 
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">

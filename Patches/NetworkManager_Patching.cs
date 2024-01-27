@@ -12,13 +12,20 @@ public static class NetworkManager_Patching
     {
         if (NetworkManager.Singleton == __instance)
         {
-            Messaging.TriggerSingletonChange(null);
+            if (NetworkManager.Singleton != null) NetworkMessaging.TriggerMessengerChange(null);
+            NetworkMessaging.TriggerSingletonChange(null);
         }
     }
 
     [HarmonyPatch("SetSingleton"), HarmonyPostfix]
     private static void SetSingleton_Postfix()
     {
-        Messaging.TriggerSingletonChange(NetworkManager.Singleton);
+        NetworkMessaging.TriggerSingletonChange(NetworkManager.Singleton);
+    }
+
+    [HarmonyPatch("Initialize"), HarmonyPostfix]
+    private static void Initialize_Postfix(bool server)
+    {
+        NetworkMessaging.TriggerMessengerChange(NetworkManager.Singleton.CustomMessagingManager);
     }
 }

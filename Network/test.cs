@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityMDK.Injection;
@@ -10,33 +9,30 @@ namespace LethalMDK.Network;
 [InjectToComponent(typeof(RoundManager))]
 public class Test : MonoBehaviour
 {
-    [Tooltip("The name identifier used for this custom message handler.")]
-    public string MessageName = "MyCustomNamedMessage";
+    private const string MessageName = "MyCustomNamedMessage";
 
-    private NetworkEvent _testMessage;
+    private readonly NetworkGlobalMessage<Guid> _testMessage = new(MessageName);
 
     private void Awake()
     {
-        _testMessage = new NetworkEvent(MessageName);
-        
         Log.Error($"Test start");
 
-        if (Messaging.IsServerOrHost)
+        if (NetworkMessaging.IsServerOrHost)
         {
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnectedCallback;
-            _testMessage.MessageReceivedFromClient += ReceiveMessageAsServer;
+            _testMessage.MessageReceivedFromClient += ReceiveEventAsServer;
         }
         else
         {
-            _testMessage.MessageReceivedFromServer += ReceiveMessageAsClient;
+            _testMessage.MessageReceivedFromServer += ReceiveEventAsClient;
         }
     }
 
     private IEnumerator Start()
     {
-        if (Messaging.IsServerOrHost) yield break;
+        if (NetworkMessaging.IsServerOrHost) yield break;
         yield return new WaitForSeconds(2f);
-        _testMessage.InvokeToServer();
+        _testMessage.SendToServer(Guid.NewGuid());
     }
 
     private void OnDestroy()
@@ -48,16 +44,16 @@ public class Test : MonoBehaviour
 
     private void OnClientConnectedCallback(ulong obj)
     {
-        _testMessage.InvokeToAllClients();
+        _testMessage.SendToAllClients(Guid.NewGuid());
     }
 
-    private void ReceiveMessageAsClient()
+    private void ReceiveEventAsClient(Guid guid)
     {
-        Log.Error("Received event from server!");
+        Log.Error("Received guid from server! " + guid);
     }
 
-    private void ReceiveMessageAsServer(ulong clientId)
+    private void ReceiveEventAsServer(Guid guid, ulong clientId)
     {
-        Log.Error("Received event from client: " + clientId);
+        Log.Error($"Received event from client '{clientId}'! {guid}");
     }
 }

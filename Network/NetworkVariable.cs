@@ -7,6 +7,7 @@ using UnityMDK.Logging;
 
 namespace LethalMDK.Network;
 
+/*
 [Initializer]
 public abstract class NetworkVariable
 {
@@ -19,7 +20,7 @@ public abstract class NetworkVariable
     [Initializer]
     private static void Init()
     {
-        Messaging.OnSingletonChange += OnSingletonChange;
+        Messaging.SingletonChanged += OnSingletonChange;
         Log.Error(_testVariable.messageName);
         var newVar = new NetworkVariable<bool>();
         Log.Error(newVar.messageName);
@@ -54,4 +55,4 @@ public class NetworkVariable<T> : NetworkVariable where T : unmanaged, IEquatabl
         
         messageName = name;
     }
-}
+}*/

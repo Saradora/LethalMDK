@@ -5,8 +5,8 @@ using UnityMDK.Logging;
 
 namespace LethalMDK.Network;
 
-public struct NetworkMessage<T> : IDisposable where T : unmanaged, IEquatable<T>
-{
+public class NetworkMessage<T> : IDisposable where T : unmanaged, IEquatable<T>
+{/*
     private readonly string _messageName;
 
     public NetworkMessage(string name)
@@ -81,11 +81,11 @@ public struct NetworkMessage<T> : IDisposable where T : unmanaged, IEquatable<T>
             NetworkManager.Singleton.CustomMessagingManager.SendNamedMessageToAll(_messageName, writer);
         else
             NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(_messageName, Messaging.ClientIds, writer);
-    }
+    }*/
 
     public void Dispose()
     {
         if (NetworkManager.Singleton && NetworkManager.Singleton.CustomMessagingManager is not null)
-            NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler(_messageName);
+            NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler("blep");
     }
 }
