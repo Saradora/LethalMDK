@@ -1,31 +1,30 @@
 using HarmonyLib;
 using LethalMDK.Network;
 using Unity.Netcode;
+using UnityMDK.Logging;
 
 namespace LethalMDK.Patches;
 
 [HarmonyPatch(typeof(NetworkManager))]
 public static class NetworkManager_Patching
 {
-    [HarmonyPatch("OnDestroy"), HarmonyPrefix]
-    private static void OnDestroy_Prefix(NetworkManager __instance)
+    private static NetworkManager _currentSingleton;
+    private static CustomMessagingManager _currentMessagingManager;
+    
+    [HarmonyPatch("Singleton", MethodType.Setter), HarmonyPostfix]
+    private static void Singleton_SetterPostfix(NetworkManager value)
     {
-        if (NetworkManager.Singleton == __instance)
-        {
-            if (NetworkManager.Singleton != null) NetworkMessaging.TriggerMessengerChange(null);
-            NetworkMessaging.TriggerSingletonChange(null);
-        }
+        if (_currentSingleton == value) return;
+        if (value == null) CustomMessagingManager_SetterPostfix(null);
+        NetworkMessaging.TriggerSingletonChange(value);
+        _currentSingleton = value;
     }
 
-    [HarmonyPatch("SetSingleton"), HarmonyPostfix]
-    private static void SetSingleton_Postfix()
+    [HarmonyPatch("CustomMessagingManager", MethodType.Setter), HarmonyPostfix]
+    private static void CustomMessagingManager_SetterPostfix(CustomMessagingManager value)
     {
-        NetworkMessaging.TriggerSingletonChange(NetworkManager.Singleton);
-    }
-
-    [HarmonyPatch("Initialize"), HarmonyPostfix]
-    private static void Initialize_Postfix(bool server)
-    {
-        NetworkMessaging.TriggerMessengerChange(NetworkManager.Singleton.CustomMessagingManager);
+        if (_currentMessagingManager == value) return;
+        NetworkMessaging.TriggerMessengerChange(value);
+        _currentMessagingManager = value;
     }
 }

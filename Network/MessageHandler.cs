@@ -7,22 +7,22 @@ internal struct NetworkEvent {}
 public class MessageHandler
 {
     public Type ReturnType { get; }
-    public string Name { get; }
-    internal CustomMessagingManager.HandleNamedMessageDelegate Action { get; private set; }
+    internal CustomMessagingManager.UnnamedMessageDelegate Action { get; private set; }
 
-    private MessageHandler(string name, CustomMessagingManager.HandleNamedMessageDelegate action, Type returnType)
+    public int ActionCount => Action is null ? 0 : Action.GetInvocationList().Length;
+
+    private MessageHandler(CustomMessagingManager.UnnamedMessageDelegate action, Type returnType)
     {
         ReturnType = returnType;
-        Name = name;
         Action = action;
     }
 
-    public static MessageHandler Create<TReturnType>(string name, CustomMessagingManager.HandleNamedMessageDelegate action)
+    public static MessageHandler Create<TReturnType>(CustomMessagingManager.UnnamedMessageDelegate action)
     {
-        return new MessageHandler(name, action, typeof(TReturnType));
+        return new MessageHandler(action, typeof(TReturnType));
     }
 
-    public void Subscribe<TReturnType>(CustomMessagingManager.HandleNamedMessageDelegate action)
+    public void Subscribe<TReturnType>(CustomMessagingManager.UnnamedMessageDelegate action)
     {
         if (ReturnType != typeof(TReturnType))
             throw new ArgumentException($"Cannot create network event with type {typeof(TReturnType).Name} because an event with the same name already exists with a different type of {ReturnType.Name}.");
@@ -30,7 +30,7 @@ public class MessageHandler
         Action += action;
     }
 
-    public void Unsubscribe(CustomMessagingManager.HandleNamedMessageDelegate action)
+    public void Unsubscribe(CustomMessagingManager.UnnamedMessageDelegate action)
     {
         Action -= action;
     }

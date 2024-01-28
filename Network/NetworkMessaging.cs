@@ -1,15 +1,15 @@
-﻿using Unity.Netcode;
+﻿using Unity.Collections;
+using Unity.Netcode;
 using UnityMDK.Logging;
 
 namespace LethalMDK.Network;
 
 public static class NetworkMessaging
 {
-    private static Dictionary<uint, MessageHandler> _registeredMessages = new();
-    // todo verify if the valuetuple being a struct doesn't mess with action registering and stuff
+    private static readonly Dictionary<uint, MessageHandler> _registeredMessages = new();
     private static CustomMessagingManager _messenger;
 
-    public static bool IsServerOrHost => NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost;
+    public static bool IsServer => NetworkManager.Singleton.IsServer;
 
     public static ulong ServerClientId => NetworkManager.ServerClientId;
 
@@ -44,8 +44,16 @@ public static class NetworkMessaging
         }
     }
 
+    public static FastBufferWriter GetWriter(uint hash, int size)
+    {
+        FastBufferWriter writer = new(size + FastBufferWriter.GetWriteSize<uint>(), Allocator.Temp);
+        writer.WriteValueSafe(hash);
+        return writer;
+    }
+
     static NetworkMessaging()
     {
+        MessagingManagerChanged -= OnMessagingManagerChanged;
         MessagingManagerChanged += OnMessagingManagerChanged;
     }
 
@@ -53,31 +61,44 @@ public static class NetworkMessaging
     {
         if (_messenger is not null)
         {
-            foreach ((uint _, MessageHandler msg) in _registeredMessages)
-            {
-                _messenger.UnregisterNamedMessageHandler(msg.Name);
-            }
+            _messenger.OnUnnamedMessage -= OnUnnamedMessageReceived;
         }
 
         _messenger = instance;
+
+        if (_messenger is null) return;
         
-        foreach ((uint _, MessageHandler msg) in _registeredMessages)
+        _messenger.OnUnnamedMessage += OnUnnamedMessageReceived;
+    }
+
+    private static void OnUnnamedMessageReceived(ulong clientId, FastBufferReader bufferReader)
+    {
+        uint hash = 0;
+        if (!bufferReader.TryBeginReadValue(hash))
         {
-            _messenger.RegisterNamedMessageHandler(msg.Name, msg.Action);
+            return;
+        }
+        
+        bufferReader.ReadValue(out hash);
+        Log.Print($"Seek");
+        bufferReader.Seek(FastBufferWriter.GetWriteSize<uint>());
+
+        if (_registeredMessages.TryGetValue(hash, out var handler))
+        {
+            handler.Action?.Invoke(clientId, bufferReader);
         }
     }
 
-    public static void RegisterEvent<TReturnType>(uint hash, string name, CustomMessagingManager.HandleNamedMessageDelegate action)
+    public static void RegisterEvent<TReturnType>(uint hash, CustomMessagingManager.UnnamedMessageDelegate action)
     {
         if (!_registeredMessages.ContainsKey(hash))
         {
-            _registeredMessages[hash] = MessageHandler.Create<TReturnType>(name, action);
-            _messenger?.RegisterNamedMessageHandler(name, _registeredMessages[hash].Action); // todo verify if i don't need to overwrite it entirely each time
+            _registeredMessages[hash] = MessageHandler.Create<TReturnType>(action);
         }
         else _registeredMessages[hash].Subscribe<TReturnType>(action);
     }
 
-    public static void UnregisterEvent(uint hash, CustomMessagingManager.HandleNamedMessageDelegate action)
+    public static void UnregisterEvent(uint hash, CustomMessagingManager.UnnamedMessageDelegate action)
     {
         if (!_registeredMessages.ContainsKey(hash)) return;
 
@@ -85,79 +106,76 @@ public static class NetworkMessaging
 
         handler.Unsubscribe(action);
 
-        if (handler.Action.GetInvocationList().Length <= 0)
+        if (handler.ActionCount <= 0)
         {
-            _messenger?.UnregisterNamedMessageHandler(handler.Name);
             _registeredMessages.Remove(hash);
         }
     }
 
-    public static void TrySendMessageToAllClients<TReturnType>(uint hash, FastBufferWriter writer, bool includeHost)
+    public static void TrySendMessageToServer<TReturnType>(uint hash, FastBufferWriter writer, NetworkDelivery delivery = NetworkDelivery.ReliableSequenced)
     {
-        if (!IsServerOrHost)
-        {
-            Log.Warning($"Message couldn't be sent because you are not the server.");
-            return;
-        }
-        
-        if (!TryGetHandlerToSend<TReturnType>(hash, out var handler))
-            return;
-        
-        if (includeHost)
-            _messenger.SendNamedMessageToAll(handler.Name, writer);
-        else
-            _messenger.SendNamedMessage(handler.Name, ClientIds, writer);
-    }
-
-    public static void TrySendMessageToServer<TReturnType>(uint hash, FastBufferWriter writer)
-    {
-        if (IsServerOrHost)
+        if (IsServer)
         {
             Log.Warning($"Message couldn't be sent because you are the server.");
             return;
         }
         
-        TrySendMessageToClientInternal<TReturnType>(hash, ServerClientId, writer);
+        TrySendMessageToClientInternal<TReturnType>(hash, ServerClientId, writer, delivery);
     }
 
-    public static void TrySendMessageToClient<TReturnType>(uint hash, ulong clientId, FastBufferWriter writer)
+    public static void TrySendMessageToClient<TReturnType>(uint hash, ulong clientId, FastBufferWriter writer, NetworkDelivery delivery = NetworkDelivery.ReliableSequenced)
     {
-        if (!IsServerOrHost)
+        if (!IsServer)
         {
             Log.Warning($"Message couldn't be sent because you are not the server.");
             return;
         }
         
-        TrySendMessageToClientInternal<TReturnType>(hash, clientId, writer);
+        TrySendMessageToClientInternal<TReturnType>(hash, clientId, writer, delivery);
     }
 
-    private static void TrySendMessageToClientInternal<TReturnType>(uint hash, ulong clientId, FastBufferWriter writer)
+    public static void TrySendMessageToAllClients<TReturnType>(uint hash, FastBufferWriter writer, bool includeHost, NetworkDelivery delivery = NetworkDelivery.ReliableSequenced)
     {
-        if (!TryGetHandlerToSend<TReturnType>(hash, out var handler))
+        if (!IsServer)
+        {
+            Log.Warning($"Message couldn't be sent because you are not the server.");
+            return;
+        }
+
+        if (!ValidateHandler<TReturnType>(hash))
+            return;
+        
+        if (includeHost)
+            _messenger.SendUnnamedMessageToAll(writer, delivery);
+        else
+            _messenger.SendUnnamedMessage(ClientIds, writer, delivery);
+    }
+
+    private static void TrySendMessageToClientInternal<TReturnType>(uint hash, ulong clientId, FastBufferWriter writer, NetworkDelivery delivery)
+    {
+        if (!ValidateHandler<TReturnType>(hash))
             return;
 
-        _messenger.SendNamedMessage(handler.Name, clientId, writer);
+        _messenger.SendUnnamedMessage(clientId, writer, delivery);
     }
 
-    private static bool TryGetHandlerToSend<TReturnType>(uint hash, out MessageHandler outHandler)
+    private static bool ValidateHandler<TReturnType>(uint hash)
     {
         if (_messenger is null)
         {
             Log.Warning($"Message couldn't be sent because messenger isn't active");
-            outHandler = null;
             return false;
         }
         
-        if (!_registeredMessages.TryGetValue(hash, out outHandler))
+        if (!_registeredMessages.TryGetValue(hash, out MessageHandler handler))
         {
             Log.Warning($"Message couldn't be sent because it wasn't registered to the messenger");
             return false;
         }
 
-        if (outHandler.ReturnType != typeof(TReturnType))
+        if (handler.ReturnType != typeof(TReturnType))
         {
             Log.Error($"Message couldn't be sent because the registered event with the same name has a different return type.");
-            outHandler = null;
             return false;
         }
 

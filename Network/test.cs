@@ -6,54 +6,59 @@ using UnityMDK.Logging;
 
 namespace LethalMDK.Network;
 
-[InjectToComponent(typeof(RoundManager))]
+[InjectToComponent(typeof(LungProp))]
 public class Test : MonoBehaviour
 {
     private const string MessageName = "MyCustomNamedMessage";
 
-    private readonly NetworkGlobalMessage<Guid> _testMessage = new(MessageName);
+    private ObjectNetEvent _startEvent;
 
     private void Awake()
     {
         Log.Error($"Test start");
+        _startEvent = new ObjectNetEvent(MessageName, GetComponent<NetworkObject>());
 
-        if (NetworkMessaging.IsServerOrHost)
+        if (NetworkMessaging.IsServer)
         {
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnectedCallback;
-            _testMessage.MessageReceivedFromClient += ReceiveEventAsServer;
+            _startEvent.EventReceivedFromClient += ReceiveEventAsServer;
         }
         else
         {
-            _testMessage.MessageReceivedFromServer += ReceiveEventAsClient;
+            _startEvent.EventReceivedFromServer += ReceiveEventAsClient;
         }
     }
 
     private IEnumerator Start()
     {
-        if (NetworkMessaging.IsServerOrHost) yield break;
+        if (NetworkMessaging.IsServer) yield break;
         yield return new WaitForSeconds(2f);
-        _testMessage.SendToServer(Guid.NewGuid());
+        int clientId = (int)NetworkManager.Singleton.LocalClientId;
+        Log.Error($"{name} client {clientId} send!");
+        _startEvent.InvokeToServer();
     }
 
     private void OnDestroy()
     {
-        _testMessage.Dispose();
         // Whether server or not, unregister this.
+        _startEvent?.Dispose();
+        if (!NetworkManager.Singleton) return;
         NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientConnectedCallback;
     }
 
     private void OnClientConnectedCallback(ulong obj)
     {
-        _testMessage.SendToAllClients(Guid.NewGuid());
+        Log.Error($"{name} server send!");
+        _startEvent.InvokeToAllClients();
     }
 
-    private void ReceiveEventAsClient(Guid guid)
+    private void ReceiveEventAsClient()
     {
-        Log.Error("Received guid from server! " + guid);
+        Log.Error($"{name} received from server!");
     }
 
-    private void ReceiveEventAsServer(Guid guid, ulong clientId)
+    private void ReceiveEventAsServer(ulong clientId)
     {
-        Log.Error($"Received event from client '{clientId}'! {guid}");
+        Log.Error($"{name} received from {clientId}!");
     }
 }
