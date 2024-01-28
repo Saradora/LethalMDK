@@ -29,6 +29,7 @@ public static class NetworkPrefabs
         if (!NetworkManager.Singleton)
         {
             Log.Error("Network manager isn't ready");
+            return;
         }
         
         NetworkManager.Singleton.AddNetworkPrefab(prefab);
