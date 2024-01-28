@@ -21,7 +21,7 @@ public abstract class NetEventBase : MessageReceiver
     {
         uint? hash = GetHash();
         if (hash is null)
-            throw new NullReferenceException("Cannot register event as it is uninitialized.");
+            throw new NullReferenceException("Cannot invoke event as it is uninitialized.");
         
         using var writer = NetworkMessaging.GetWriter(hash.Value, 0);
         NetworkMessaging.TrySendMessageToServer<NetworkEvent>(hash.Value, writer, delivery);
@@ -31,7 +31,7 @@ public abstract class NetEventBase : MessageReceiver
     {
         uint? hash = GetHash();
         if (hash is null)
-            throw new NullReferenceException("Cannot register event as it is uninitialized.");
+            throw new NullReferenceException("Cannot invoke event as it is uninitialized.");
         
         using var writer = NetworkMessaging.GetWriter(hash.Value, 0);
         NetworkMessaging.TrySendMessageToClient<NetworkEvent>(hash.Value, clientId, writer, delivery);
@@ -41,7 +41,7 @@ public abstract class NetEventBase : MessageReceiver
     {
         uint? hash = GetHash();
         if (hash is null)
-            throw new NullReferenceException("Cannot register event as it is uninitialized.");
+            throw new NullReferenceException("Cannot invoke event as it is uninitialized.");
         
         using var writer = NetworkMessaging.GetWriter(hash.Value, 0);
         NetworkMessaging.TrySendMessageToAllClients<NetworkEvent>(hash.Value, writer, includeHost, delivery);

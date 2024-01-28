@@ -2,9 +2,9 @@
 
 namespace LethalMDK.Network;
 
-public class GlobalNetMessage<T> : GlobalNetMessageBase<T> where T : unmanaged, IEquatable<T>
+public class ObjectNetMessage<T> : ObjectNetMessageBase<T> where T : unmanaged, IEquatable<T>
 {
-    public GlobalNetMessage(string name, bool assemblySpecific = false) : base(name, assemblySpecific)
+    public ObjectNetMessage(string name, NetworkObject targetObject, bool assemblySpecific = false) : base(name, targetObject, assemblySpecific)
     {
     }
 
@@ -30,9 +30,9 @@ public class GlobalNetMessage<T> : GlobalNetMessageBase<T> where T : unmanaged, 
     }
 }
 
-public class GlobalNetStructMessage<T> : GlobalNetMessageBase<T> where T : unmanaged, INetworkSerializeByMemcpy
+public class ObjectNetStructMessage<T> : ObjectNetMessageBase<T> where T : unmanaged, INetworkSerializeByMemcpy
 {
-    public GlobalNetStructMessage(string name, bool assemblySpecific = false) : base(name, assemblySpecific)
+    public ObjectNetStructMessage(string name, NetworkObject targetObject, bool assemblySpecific = false) : base(name, targetObject, assemblySpecific)
     {
     }
 
@@ -57,9 +57,9 @@ public class GlobalNetStructMessage<T> : GlobalNetMessageBase<T> where T : unman
     }
 }
 
-public class GlobalNetMessage : GlobalNetMessageBase<string>
+public class ObjectNetMessage : ObjectNetMessageBase<string>
 {
-    public GlobalNetMessage(string name, bool assemblySpecific = false) : base(name, assemblySpecific)
+    public ObjectNetMessage(string name, NetworkObject targetObject, bool assemblySpecific = false) : base(name, targetObject, assemblySpecific)
     {
     }
 

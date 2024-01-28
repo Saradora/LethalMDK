@@ -11,21 +11,23 @@ public class Test : MonoBehaviour
 {
     private const string MessageName = "MyCustomNamedMessage";
 
-    private ObjectNetEvent _startEvent;
+    private Guid _syncedGuid;
+
+    private ObjectNetMessage<Guid> _guidSyncEvent;
 
     private void Awake()
     {
         Log.Error($"Test start");
-        _startEvent = new ObjectNetEvent(MessageName, GetComponent<NetworkObject>());
+        _guidSyncEvent = new (MessageName, GetComponent<NetworkObject>());
 
         if (NetworkMessaging.IsServer)
         {
+            _syncedGuid = Guid.NewGuid();
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnectedCallback;
-            _startEvent.EventReceivedFromClient += ReceiveEventAsServer;
         }
         else
         {
-            _startEvent.EventReceivedFromServer += ReceiveEventAsClient;
+            _guidSyncEvent.MessageReceivedFromServer += ReceiveGuidSync;
         }
     }
 
@@ -34,31 +36,26 @@ public class Test : MonoBehaviour
         if (NetworkMessaging.IsServer) yield break;
         yield return new WaitForSeconds(2f);
         int clientId = (int)NetworkManager.Singleton.LocalClientId;
-        Log.Error($"{name} client {clientId} send!");
-        _startEvent.InvokeToServer();
     }
 
     private void OnDestroy()
     {
         // Whether server or not, unregister this.
-        _startEvent?.Dispose();
+        _guidSyncEvent?.Dispose();
         if (!NetworkManager.Singleton) return;
-        NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientConnectedCallback;
+        Log.Error($"Test destroy");
+        NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnectedCallback;
     }
 
-    private void OnClientConnectedCallback(ulong obj)
+    private void OnClientConnectedCallback(ulong client)
     {
-        Log.Error($"{name} server send!");
-        _startEvent.InvokeToAllClients();
+        Log.Error($"server {_syncedGuid} sent to {client}!");
+        _guidSyncEvent.SendToClient(_syncedGuid, client);
     }
 
-    private void ReceiveEventAsClient()
+    private void ReceiveGuidSync(Guid syncedGuid)
     {
-        Log.Error($"{name} received from server!");
-    }
-
-    private void ReceiveEventAsServer(ulong clientId)
-    {
-        Log.Error($"{name} received from {clientId}!");
+        _syncedGuid = syncedGuid;
+        Log.Error($"{_syncedGuid} received from server!");
     }
 }
