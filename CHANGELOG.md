@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 //
 
+## [1.0.2] - 2024-02-08
+
+### Fixed
+- Added BepInDependency to UnityMDK to ensure they load in the correct order
+
 ## [1.0.1] - 2024-01-24
 
 ### Changed
