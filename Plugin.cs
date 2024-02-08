@@ -3,6 +3,7 @@ using HarmonyLib;
 
 namespace LethalMDK;
 
+[BepInDependency(UnityMDK.UnityMDK.ModGuid)]
 [BepInPlugin(LethalMDK.ModGuid, LethalMDK.ModName, LethalMDK.ModVersion)]
 public class PluginInitializer : BaseUnityPlugin
 {
