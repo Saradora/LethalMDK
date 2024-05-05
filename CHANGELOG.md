@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 //
 
+## [1.2.0] - 2024-05-01
+
+### Added
+- Full list of v50 prefabs
+
 ## [1.1.0] - 2024-02-27
 
 ### Added
